@@ -300,6 +300,26 @@ lws_tls_client_create_vhost_context(struct lws_vhost *vh,
 		lwsl_notice("%s: using mem client cert %d\n",
 			    __func__, cert_mem_len);
 	}
+        if (private_key_filepath) {
+                lwsl_notice("%s: doing private key filepath\n", __func__);
+                lws_ssl_bind_passphrase(vh->tls.ssl_client_ctx, 1, info);
+                /* set the private key from KeyFile */
+                if (SSL_CTX_use_PrivateKey_file(vh->tls.ssl_client_ctx,
+                    private_key_filepath, SSL_FILETYPE_PEM) != 1) {
+                        lwsl_err("use_PrivateKey_file '%s'\n",
+                                 private_key_filepath);
+                        lws_tls_err_describe_clear();
+                        return 1;
+                }
+                lwsl_notice("Loaded client cert private key %s\n",
+                            private_key_filepath);
+
+                /* verify private key */
+                if (!SSL_CTX_check_private_key(vh->tls.ssl_client_ctx)) {
+                        lwsl_err("Private SSL key doesn't match cert\n");
+                        return 1;
+                }
+        }
 
 	return 0;
 }
